@@ -77,6 +77,7 @@ public class Labels {
   public static final String NO_RESERVATION_AVAILABLE = "no_reservation_available";
   public static final String INVALID_FLOW_COMMIT_MISSING = "invalid_flow_commit_missing";
   public static final String CHARGING_NOT_ALLOWED = "charging_not_allowed";
+  public static final String WALLET_LIMIT_REACHED = "wallet_limit_reached";
   public static final String SUBSCRIBER_ID_BLOCKED = "subscriber_id_blocked";
   public static final String SUBSCRIBER_NOT_EXIST = "subscriber_not_exist";
 
