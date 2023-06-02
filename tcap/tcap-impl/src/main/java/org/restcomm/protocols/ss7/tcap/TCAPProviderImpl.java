@@ -35,6 +35,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7MetricLabels;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7Metrics;
 import org.restcomm.protocols.ss7.sccp.RemoteSccpStatus;
 import org.restcomm.protocols.ss7.sccp.SccpConnection;
 import org.restcomm.protocols.ss7.sccp.SccpListener;
@@ -663,7 +665,8 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
             }
             catch(ASNException ex) {
                 logger.error("ParseException when parsing TCMessage: " + ex.toString(), ex);
-                this.sendProviderAbort(PAbortCauseType.BadlyFormattedTxPortion,Unpooled.EMPTY_BUFFER, remoteAddress, localAddress,message.getSls(), message.getNetworkId(), message.getIncomingOpc());                
+                Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.TC_MESSAGE_PARSE, Jss7MetricLabels.READ).inc();
+                this.sendProviderAbort(PAbortCauseType.BadlyFormattedTxPortion,Unpooled.EMPTY_BUFFER, remoteAddress, localAddress,message.getSls(), message.getNetworkId(), message.getIncomingOpc());
                 return;           	
             }
             
@@ -686,7 +689,8 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
             	
             	if(shouldProceed) {
 	            	if(realMessage instanceof TCContinueMessage) {
-	            		TCContinueMessage tcm=(TCContinueMessage)realMessage;
+                  Jss7Metrics.TCAP_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.TC_CONTINUE).inc();
+                  TCContinueMessage tcm=(TCContinueMessage)realMessage;
 	            		long dialogId = Utils.decodeTransactionId(tcm.getDestinationTransactionId(), this.stack.getSwapTcapIdBytes());
 	                    DialogImpl di = this.dialogs.get(dialogId);
 	                    
@@ -698,7 +702,8 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
 	                        di.processContinue(tcm, localAddress, remoteAddress, data);
 	                    }
 	            	} else if(realMessage instanceof TCBeginMessage) {
-	            		TCBeginMessage tcb=(TCBeginMessage)realMessage;
+                  Jss7Metrics.TCAP_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.TC_BEGIN).inc();
+                  TCBeginMessage tcb=(TCBeginMessage)realMessage;
 	            		if (tcb.getDialogPortion() != null && tcb.getDialogPortion().getDialogAPDU() != null
 	                            && tcb.getDialogPortion().getDialogAPDU() instanceof DialogRequestAPDU) {
 	                        DialogRequestAPDU dlg = (DialogRequestAPDU) tcb.getDialogPortion().getDialogAPDU();
@@ -728,6 +733,7 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
 	                    di.processBegin(tcb, localAddress, remoteAddress, data);
 	            	}
 	            	else if(realMessage instanceof TCEndMessage) {
+                  Jss7Metrics.TCAP_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.TC_END).inc();
 	            		TCEndMessage teb=(TCEndMessage)realMessage;
 	            		long dialogId = Utils.decodeTransactionId(teb.getDestinationTransactionId(), this.stack.getSwapTcapIdBytes());
 	                    DialogImpl di = this.dialogs.get(dialogId);
@@ -738,7 +744,8 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
 	                    }		
 	            	}
 	            	else if(realMessage instanceof TCAbortMessage) {
-	            		TCAbortMessage tub=(TCAbortMessage)realMessage;
+                  Jss7Metrics.TCAP_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.TC_ABORT).inc();
+                  TCAbortMessage tub=(TCAbortMessage)realMessage;
 	            		DialogImpl di=null;
 	            		Long dialogId=null;
 	            		if(tub.getDestinationTransactionId()!=null) {
@@ -753,6 +760,7 @@ public class TCAPProviderImpl implements TCAPProvider, SccpListener, ASNDecodeHa
 	                    }			            		
 	            	}
 	            	else if(realMessage instanceof TCUniMessage) {
+                  Jss7Metrics.TCAP_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.TC_UNI).inc();
 	            		TCUniMessage tcuni=(TCUniMessage)realMessage;
 	            		int remotePc = message.getIncomingOpc();
 	                    DialogImpl uniDialog = (DialogImpl) this.getNewUnstructuredDialog(localAddress, remoteAddress);
