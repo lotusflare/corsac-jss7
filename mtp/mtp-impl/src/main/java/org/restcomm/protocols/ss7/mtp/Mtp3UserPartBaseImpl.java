@@ -28,8 +28,11 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7MetricLabels;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7Metrics;
 
 // lic dep 1
 
@@ -67,6 +70,8 @@ public abstract class Mtp3UserPartBaseImpl implements Mtp3UserPart {
     private ExecutorService msgDeliveryExecutors;
     
     private Mtp3TransferPrimitiveFactory mtp3TransferPrimitiveFactory = null;
+
+    public static AtomicInteger msgDeliveryExecutorsBackpressure = new AtomicInteger(0);
 
     public Mtp3UserPartBaseImpl(String productName) {        
     }
@@ -192,6 +197,8 @@ public abstract class Mtp3UserPartBaseImpl implements Mtp3UserPart {
             seqControl = seqControl & slsFilter;
             //ok here we need to retain again
             ReferenceCountUtil.retain(msg.getData());
+            Jss7Metrics.SS7_QUEUED_REQUESTS_HISTOGRAM.labels(Jss7MetricLabels.M3UA_MESSAGE_DELIVERY_EXECUTORS)
+              .observe(msgDeliveryExecutorsBackpressure.incrementAndGet());
             this.msgDeliveryExecutors.execute(hdl);
         } else {
             logger.error(String.format(
@@ -250,6 +257,8 @@ public abstract class Mtp3UserPartBaseImpl implements Mtp3UserPart {
         @Override
         public void run() {
         	try {
+              Jss7Metrics.SS7_QUEUED_REQUESTS_HISTOGRAM.labels(Jss7MetricLabels.M3UA_MESSAGE_DELIVERY_EXECUTORS)
+                .observe(msgDeliveryExecutorsBackpressure.decrementAndGet());
 	            if (isStarted) {
 	                try {
 	                    for (Mtp3UserPartListener lsn : userListeners) {

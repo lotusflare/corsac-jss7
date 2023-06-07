@@ -70,6 +70,8 @@ import org.restcomm.protocols.ss7.m3ua.message.ssnm.SignallingCongestion;
 import org.restcomm.protocols.ss7.m3ua.message.transfer.PayloadData;
 import org.restcomm.protocols.ss7.m3ua.parameter.ASPIdentifier;
 import org.restcomm.protocols.ss7.m3ua.parameter.ParameterFactory;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7MetricLabels;
+import org.restcomm.protocols.ss7.mtp.statistic.Jss7Metrics;
 import org.restcomm.protocols.ss7.sctp.proxy.Association;
 import org.restcomm.protocols.ss7.sctp.proxy.AssociationListener;
 import org.restcomm.protocols.ss7.sctp.proxy.IpChannelType;
@@ -317,6 +319,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
     }
 
     protected void read(M3UAMessage message) {
+      Jss7Metrics.M3UA_MESSAGE_READ_COUNT.labels(Jss7MetricLabels.getMessageClass(message.getMessageClass())).inc();
     	switch (message.getMessageClass()) {
             case MessageClass.MANAGEMENT:
                 switch (message.getMessageType()) {
@@ -333,6 +336,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
                     default:
                         logger.error(String.format("Rx : MGMT with invalid MessageType=%d message=%s",
                                 message.getMessageType(), message));
+                        Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_TYPE, Jss7MetricLabels.READ).inc();
                         break;
                 }
                 break;
@@ -346,6 +350,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
                     default:
                         logger.error(String.format("Rx : Transfer message with invalid MessageType=%d message=%s",
                                 message.getMessageType(), message));
+                        Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_TYPE, Jss7MetricLabels.READ).inc();
                         break;
                 }
                 break;
@@ -385,6 +390,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
                     default:
                         logger.error(String.format("Received SSNM with invalid MessageType=%d message=%s",
                                 message.getMessageType(), message));
+                        Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_TYPE, Jss7MetricLabels.READ).inc();
                         break;
                 }
                 break;
@@ -417,6 +423,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
                     default:
                         logger.error(String.format("Received ASPSM with invalid MessageType=%d message=%s",
                                 message.getMessageType(), message));
+                        Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_TYPE, Jss7MetricLabels.READ).inc();
                         break;
                 }
 
@@ -447,6 +454,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
                     default:
                         logger.error(String.format("Received ASPTM with invalid MessageType=%d message=%s",
                                 message.getMessageType(), message));
+                        Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_TYPE, Jss7MetricLabels.READ).inc();
                         break;
                 }
                 break;
@@ -470,12 +478,14 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
             default:
                 logger.error(String.format("Received message with invalid MessageClass=%d message=%s",
                         message.getMessageClass(), message));
+                Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_MESSAGE_CLASS, Jss7MetricLabels.READ).inc();
                 break;
         }
     }
 
     protected void write(M3UAMessage message) {
         try {
+            Jss7Metrics.M3UA_MESSAGE_WRITE_COUNT.labels(Jss7MetricLabels.getMessageClass(message.getMessageClass())).inc();
             ByteBufAllocator byteBufAllocator = this.association.getByteBufAllocator();
             ByteBuf byteBuf;
             if (byteBufAllocator != null) {
@@ -510,6 +520,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
 	        this.association.send(payloadData); 
         } catch (Throwable e) {
             logger.error(String.format("Error while trying to send PayloadData to SCTP layer. M3UAMessage=%s", message), e);
+            Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_PAYLOAD_SEND, Jss7MetricLabels.WRITE).inc();
         }
     }
 
@@ -719,6 +730,7 @@ public class AspFactoryImpl implements AssociationListener, AspFactory {
         } catch (Throwable e) {
             logger.error(
                     String.format("Error while trying to process PayloadData from SCTP layer. payloadData=%s", payloadData), e);
+            Jss7Metrics.SS7_ERROR_COUNT.labels(Jss7MetricLabels.M3UA_PAYLOAD_PROCESS, Jss7MetricLabels.READ).inc();
         }
     }
 
